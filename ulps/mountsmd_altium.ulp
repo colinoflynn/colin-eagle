@@ -1,0 +1,111 @@
+#usage "<b>Data generation for mounting machines in 'Altium' format</b>\n"
+       "<p>"
+       "Generates files for smds on the top and bottom layers "
+       "wich can be used with mounting machines. "
+       "The x and y coordinates (units: mm) of the SMD elements are calculated "
+       "as mean of maximum and mimimum value of the smds origin points. "
+       "The calculated value does not necessarily fit with the origin "
+       "point of the part in the layout."
+       "All SMD elements populated in currently set assembly variant are considered."
+       "<p>"
+       "The syntax of the output data looks like this:"
+       "<p>"
+       "<tt>Designator Footprint               Mid X         Mid Y         Ref X         Ref Y         Pad X         Pad Y TB      Rotation Comment</tt><br>"
+       "<tt>C7         0603C                38.735mm      35.242mm      38.735mm      35.242mm      37.885mm      35.242mm  T          0.00 4u7<br></tt>"
+       "<tt>C8         0402C                28.575mm      51.753mm      28.575mm      51.753mm      28.575mm      51.102mm  T         90.00 100n</tt>"
+       "<p>"
+       "MidX/MidY: Part Midpoint (based on pad extents)<br>"
+       "RefX/RefY: User Defined Origin (basically useless AFAIK)<br>"
+       "PadX/PadY: Pad 1 Location<br><br>"
+       "<author>Based on CADSOFT Provided file</author>"
+       "<p>THIS PROGRAM IS PROVIDED AS IS AND WITHOUT WARRANTY OF ANY KIND, EXPRESSED OR IMPLIED</p>"
+
+// THIS PROGRAM IS PROVIDED AS IS AND WITHOUT WARRANTY OF ANY KIND, EXPRESSED OR IMPLIED
+
+if (board) board(B) {
+
+  // Get filename
+  string fileName = dlgFileSave("Save File", filesetext(B.name, ".txt"), "*.txt");
+  if (fileName == "") exit(0);
+
+  output(fileName) {
+
+   printf("Designator Footprint               Mid X         Mid Y         Ref X         Ref Y         Pad X         Pad Y TB      Rotation Comment\n\n");
+
+   B.elements(E) if (E.populate) {
+
+         int wasSmd,
+         xmax =-2147483648,
+         xmin = 2147483647,
+         ymax = xmax,
+         ymin = xmin,
+         pad1x = 0,
+         pad1y = 0;
+
+         wasSmd = 0;
+
+        E.package.contacts(C) {
+          if (C.smd && C.smd.layer == 1) {
+            wasSmd = 1;
+
+	  if (C.name == "1") {
+	    pad1x = C.x;
+              pad1y = C.y;
+	  }
+
+            if (C.x > xmax) xmax = C.x;
+            if (C.y > ymax) ymax = C.y;
+            if (C.x < xmin) xmin = C.x;
+            if (C.y < ymin) ymin = C.y;
+          }
+        }
+
+       if (wasSmd)
+         printf("%-10s %-18s %8.3fmm %11.3fmm %11.3fmm %11.3fmm  %10.3fmm   %9.3fmm  T %13.2f %s\n",
+         E.name, E.package.name, u2mm((xmin + xmax)/2), u2mm((ymin + ymax)/2), u2mm(E.x), u2mm(E.y),
+         u2mm(pad1x), u2mm(pad1y), E.angle, E.value);
+
+   }
+
+
+   B.elements(E) if (E.populate) {
+
+         int wasSmd,
+         xmax =-2147483648,
+         xmin = 2147483647,
+         ymax = xmax,
+         ymin = xmin,
+         pad1x = 0,
+         pad1y = 0;
+
+         wasSmd = 0;
+
+        E.package.contacts(C) {
+          if (C.smd && C.smd.layer == 16) {
+            wasSmd = 1;
+
+	  if (C.name == "1") {
+	    pad1x = C.x;
+              pad1y = C.y;
+	  }
+
+            if (C.x > xmax) xmax = C.x;
+            if (C.y > ymax) ymax = C.y;
+            if (C.x < xmin) xmin = C.x;
+            if (C.y < ymin) ymin = C.y;
+          }
+        }
+
+       if (wasSmd)
+         printf("%-10s %-18s %8.3fmm %11.3fmm %11.3fmm %11.3fmm  %10.3fmm   %9.3fmm  B %14.2f %s\n",
+         E.name, E.package.name, u2mm((xmin + xmax)/2), u2mm((ymin + ymax)/2), u2mm(E.x), u2mm(E.y),
+         u2mm(pad1x), u2mm(pad1y), E.angle, E.value);
+   }
+ }
+
+}
+
+else {
+   dlgMessageBox("\n    Start this ULP in a Board    \n");
+   exit (0);
+}
